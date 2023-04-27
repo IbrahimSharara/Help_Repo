@@ -1,0 +1,24 @@
+<div>
+    <h2> Using the <i> Checked property of radio button </i> to uncheck radio button in JavaScript. </h2>
+    <br>
+    <label for="radio_btn"> Test </label>
+    <input ondblclick="clearRadio()" type="radio" id="radio_btn" value="test">
+    <br> <br>
+    <button > Uncheck Radio </button>
+    <br> <br>
+    <div id="output"></div>
+
+</div>
+
+
+<script>
+    let output = document.getElementById("output");
+    function clearRadio() {
+        let radio = document.getElementById("radio_btn");
+        radio.checked = false;
+    }
+</script>
+
+
+tempDirectory="D:\Inetpub\vhosts\thewordstone.com\tmp"
+

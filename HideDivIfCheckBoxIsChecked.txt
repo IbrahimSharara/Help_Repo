@@ -1,0 +1,96 @@
+<div class="col-md-4">
+                                                    <div class="">
+
+                                                        <input onchange="disAppeare()" class="parentCheckBox " style="width: 20px; height: 20px; border: 2px solid #ccc; border-radius: 5px; position: relative; " name="CHKIsParent" id="CHKIsParent" type="checkbox" disabled="disabled" checked="@Model.Details_vw_Services.IsParent.Value">
+                                                        <label for="CHKIsParent">Is Parent?</label>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-4 disAppeared">
+                                                    <div class="form-group  skin skin-square">
+                                                        <label for="input-11">Parent</label>
+                                                        <select id="parentID" name="parentID" disabled class="form-control">
+                                                            @foreach (var item in Model.List_vw_Services)
+                                                            {
+                                                                if (Model.Details_vw_Services.ParentServicesID == item.ServicesID)
+                                                                {
+                                                                    <option value="@item.ServicesID" selected>@item.ServicesName_Sys</option>
+                                                                }
+                                                                else
+                                                                {
+                                                                    <option value="@item.ServicesID">@item.ServicesName_Sys</option>
+                                                                }
+                                                            }
+                                                        </select>
+                                                    </div>
+                                                </div>
+
+ 
+
+<script>
+        function disAppeare() {
+            if ($('.parentCheckBox').is(":checked"))
+                $(".disAppeared").hide();
+            else
+                $(".disAppeared").show();
+        }
+        $(document).ready(function () {
+
+            /*Disable writing in input type number*/
+            $("[type='number']").keypress(function (evt) {
+                evt.preventDefault();
+            });
+
+            $(".icheckbox_square").removeClass("disabled");
+            $('.saveRoomInfo').hide();
+            $('.CancelRoomInfo').hide();
+            if ($('.parentCheckBox').is(":checked"))
+                $(".disAppeared").hide();
+            else
+                $(".disAppeared").show();
+            $(".enableRoomInfo").click(function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                var id = $(this).attr("id");
+                $("#btnRoomEditSave").show();
+                $("#btnRoomEditCancel").show();
+
+
+                $(this).hide();
+                var inputs = $("#RoomFormEdit textarea");
+                $.each(inputs, function (index, value) {
+                    $(this).removeAttr("disabled");
+                });
+                inputs = $("#RoomFormEdit input");
+                $.each(inputs, function (index, value) {
+                    $(this).removeAttr("disabled");
+                });
+
+                $('#ddlHotelID').removeAttr("disabled");
+                $('#ddlRoomTypeID').removeAttr("disabled");
+                $('#parentID').removeAttr("disabled");
+                $('#txt_ServiceName').attr('disabled', 'disabled');
+            });
+            $('.CancelRoomInfo').click(function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                $('#ddlHotelID').attr('disabled', 'disabled');
+                $('#ddlRoomTypeID').attr('disabled', 'disabled');
+                $('#txt_ServiceName').attr('disabled', 'disabled');
+                $('#CHKIsPublished').attr('disabled', 'disabled');
+                $('#CHKIsParent').attr('disabled', 'disabled');
+                $('#txt_ServicesPosition').attr('disabled', 'disabled');
+                $('#parentID').attr('disabled', 'disabled');
+
+
+
+
+                $('.disable').attr('disabled', 'disabled');
+                $('.enableRoomInfo').show();
+                $('.saveRoomInfo').hide();
+                $('.CancelRoomInfo').hide();
+
+            });
+
+        });
+    </script>
