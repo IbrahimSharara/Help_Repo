@@ -1,0 +1,12 @@
+Method Name (Httpposted file)
+{
+	if(file != null ) 
+	{
+		string photoName = Guid.newGuid() + path.getfileName(fiel.fileName);
+			string PhysicalPath = server.MapPath("images/uploads" => "the place where we save images at the server can be changed depend on the images folder path in the server" , + photoName );
+
+		file.save(PhysicalPath) ;
+		// update photo record at database 
+		project.projectPhoto = photoName  ;
+	}
+}
