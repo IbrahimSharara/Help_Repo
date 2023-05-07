@@ -1,0 +1,22 @@
+You can format datetime in C# using the ToString() method of a DateTime object. The ToString() method accepts a format string as an argument, which determines how the datetime value should be formatted. Here are some examples of common datetime formats in C#:
+
+// Format datetime as "MM/dd/yyyy"
+DateTime date = DateTime.Now;
+string formattedDate = date.ToString("MM/dd/yyyy");
+
+// Format datetime as "MM/dd/yyyy hh:mm:ss tt"
+DateTime dateTime = DateTime.Now;
+string formattedDateTime = dateTime.ToString("MM/dd/yyyy hh:mm:ss tt");
+
+// Format datetime as "yyyy-MM-ddTHH:mm:ss.fffffffK"
+DateTimeOffset offset = DateTimeOffset.UtcNow;
+string formattedOffset = offset.ToString("yyyy-MM-ddTHH:mm:ss.fffffffK");
+
+
+In the above examples, formattedDate, formattedDateTime, and formattedOffset will contain the formatted datetime strings based on the specified format strings. 
+
+The ToString() method can accept various custom format strings, which include pre-defined format specifiers for common datetime formats such as "yyyy" for the year, "MM" for the month, "dd" for the day, "HH" for the hour (in 24-hour format), "mm" for the minute, "ss" for the second, and "tt" for the AM/PM designator. You can also use custom format specifiers to format datetime in any way you like. For example, "fffffff" formats the datetime with seven decimal places for the fractional seconds component. 
+
+Microsoft provides a full list of custom format specifiers you can use to format datetime in C#: https://docs.microsoft.com/en-us/dotnet/standard/base-types/custom-date-and-time-format-strings
+
+The number of tokens used this time: 1895

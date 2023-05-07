@@ -1,0 +1,87 @@
+At First 
+Download PagedList.Mvc from NUGet Pachage
+
+
+========================= Code ============
+ public ActionResult Index(int? page)
+        {
+            TRavcoTravelWSDB2023Entities DB = new TRavcoTravelWSDB2023Entities();
+            var Products = DB.vw_Products.Where(p => p.IsDeleted != true && p.ProductStatus != false && p.LangID == 1).ToList();
+            IPagedList<vw_Products> Model = Products.ToPagedList(page ?? 1 , 6);
+            return View(Model);
+        }
+
+========================= Code With Illastration ============
+ public ActionResult Index(int? page(The number of selected Page))
+        {
+            TRavcoTravelWSDB2023Entities DB = new TRavcoTravelWSDB2023Entities(); ( DateBase Context)
+            var Products = DB.vw_Products.Where(p => p.IsDeleted != true && p.ProductStatus != false && p.LangID == 1).ToList();
+(Get All View Data)
+            IPagedList<vw_Products> Model = Products.ToPagedList(page ?? 1 , 6); 
+(The Pagging List Main Component To View Data And Controll The Displayed Items )
+            return View(Model);
+        }
+
+
+=========================== View ========================
+@using PagedList;
+@using PagedList.Mvc;
+@model IPagedList<PaggingListProject.Models.vw_Products>
+@{
+    ViewBag.Title = "Home Page";
+}
+<div class="container">
+    <div class="row">
+        @foreach (var item in Model)
+        {
+
+            <div class="col-lg-6">
+                <div class="col-4">
+
+                </div>
+                <img  src="images/uploads/@item.ProductPhoto" />
+                <div class="col-8">
+                    <div>
+                        <h1>@item.ProductNameSys</h1>
+                    </div>
+                </div>
+            </div>
+
+        }
+    </div>
+</div>
+@Html.PagedListPager(Model, page => Url.Action("Index",
+    new { page }))
+
+=================================== View With Illastration =========
+(Main Using To Display Data)
+@using PagedList;
+@using PagedList.Mvc;
+(Model To Be Listed)
+@model IPagedList<PaggingListProject.Models.vw_Products>
+@{
+    ViewBag.Title = "Home Page";
+}
+<div class="container">
+    <div class="row">
+        @foreach (var item in Model)
+        {
+
+            <div class="col-lg-6">
+                <div class="col-4">
+
+                </div>
+                <img  src="images/uploads/@item.ProductPhoto" />
+                <div class="col-8">
+                    <div>
+                        <h1>@item.ProductNameSys</h1>
+                    </div>
+                </div>
+            </div>
+
+        }
+    </div>
+</div>
+(The Pagging List Main Component To controll And Show the Pages And Number Of Pages)
+@Html.PagedListPager(Model, page => Url.Action("Index",
+    new { page }))
