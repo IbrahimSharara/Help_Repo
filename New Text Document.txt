@@ -1,0 +1,10 @@
+<script>
+        var currentDate = new Date().toISOString().split('T')[0];
+        $('#OperationDateFrom').attr('min', currentDate);
+        $('#OperationDateTo').attr('min', currentDate);
+        var dateInput = $('#OperationDateFrom');
+        $('#OperationDateFrom').on('change', function () {
+            var startDate = $(this).val();
+            $('#OperationDateTo').attr('min', startDate);
+        });
+    </script>

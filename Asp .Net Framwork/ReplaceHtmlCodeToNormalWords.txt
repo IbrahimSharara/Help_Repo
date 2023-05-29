@@ -1,0 +1,1 @@
+@Html.Raw(HttpUtility.HtmlDecode(Model.RoomDetails.RoomDetails))
