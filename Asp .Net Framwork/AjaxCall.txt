@@ -1,0 +1,72 @@
+To create ajax call 
+1 - create method which return partial view 
+2 - create view and choose type as partial view
+3 - create content inside the view which depend on logic
+4 - create ajax call on changing or clicking any item in the view 
+ex
+{
+	<div class="col-3">
+               <input type="text" name="BookName" class="form-control" placeholder="Book Name" id="BookName" />
+	</div>
+}
+
+ex2
+{
+	<select id="writer" name="writer" class="form-control">
+                        <option value="0">Write</option>
+                        @foreach (var item in Model.Writers)
+                        {
+                            <option value="@item.WriteId">@item.WriterName</option>
+                        }
+	</select>
+}
+
+5 - create ajax call at the scripts section
+{
+	<script>
+        $(document).ready(function () {
+            $('#BookName').on('input', function () {
+                var inputValue = $(this).val();
+                if (inputValue === '') {
+                    location.reload();
+                }
+                debugger;
+                $.ajax(
+                    {
+                        type: "post",
+                        url: "/book/bookName?name=" + inputValue,
+                        contentType: "html",
+                        success: function (response) {
+                            debugger;
+                            $("#books").empty();
+                            $("#books").append(response);
+                            //$("#DestinationID").html(result);
+                        }
+                    })
+            });
+        })
+</script>
+
+
+<script>
+        $(document).ready(function () {
+            $("#writer").change(function () {
+                var CountryID = $(this).val();
+                debugger;
+                $.ajax(
+                    {
+                        type: "post",
+                        url: "/book/ByWriter?id=" + CountryID,
+                        contentType: "html",
+                        success: function (response) {
+                            debugger;
+                            $("#books").empty();
+                            $("#books").append(response);
+                            //$("#DestinationID").html(result);
+                        }
+                    })
+            })
+
+        })
+</script>
+}

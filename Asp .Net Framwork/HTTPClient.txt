@@ -1,0 +1,11 @@
+var client = new HttpClient();
+var request = new HttpRequestMessage(HttpMethod.Post, "http://212.103.166.67/MobWs/api/Method/6/GetTourPromo");
+request.Headers.Add("Authorization", "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJLb2R1IjoiV0VCVEVTIiwiQWRpIjoiV0VCIFRFU1QgIiwiUG9zU2lmcmUiOiJUMkU2UzNUNyIsIk1vYl9DdXN0b21lckFycml2YWwiOjEsIlRvdXJNb2JpbGUiOjEsIlNlam91clFSIjoxLCJMb2dJRCI6MzgxMCwiTW9iVHVyQWNhYmlsc2luIjoiWSIsIk11c05vIjoiMDYzMTIwMSIsIkRlZmF1bHRDdXIiOiJFVVIiLCJBcHBLZXkiOiIiLCJleHAiOjE2ODU1MjU4NjEsIm5iZiI6MTY4NTQzOTQ2MX0.nPRewlmH7z1gciZuaIxaJ6vk4KWGtz7nVWnQXlp6tLM");
+var content = new StringContent("{\r\n    \"Tour\": \"C50\",\r\n    \"Hotel\": \"\",\r\n    \"Guide\": \"WEBTES\",\r\n    \"OnlyTourInfo\":\"\",\r\n    \"TerminalID\": \"\",\r\n    \"GuideID\":\"3810\"\r\n}", null, "application/json");
+request.Content = content;
+var response = await client.SendAsync(request);
+response.EnsureSuccessStatusCode();
+var responseContent = response.Content.ReadAsStringAsync().Result;
+//here TourPromo is a class generated from https://app.quicktype.io/ and Deserializing it
+var responseData = JsonConvert.DeserializeObject<TourPromo>(responseContent);
+Console.WriteLine(await response.Content.ReadAsStringAsync());

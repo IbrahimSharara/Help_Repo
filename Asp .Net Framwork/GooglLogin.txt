@@ -1,0 +1,57 @@
+how to make login with google at my asp .net framwork
+Step 1: Create a Google Developer Account
+
+Go to the Google Developers Console (https://console.developers.google.com/).
+Sign in with your Google account or create a new one.
+Create a new project by clicking on the "Select a project" dropdown at the top of the page and selecting "New project".
+Enter a name for your project and click "Create".
+Step 2: Configure Google OAuth Credentials
+
+Select your newly created project from the project dropdown.
+In the left sidebar, click on "Credentials".
+Click on "Create Credentials" and select "OAuth client ID".
+Select "Web application" as the application type.
+Enter a name for the client ID.
+In the "Authorized JavaScript origins" field, enter the base URL of your ASP.NET application (e.g., http://localhost:8080).
+In the "Authorized redirect URIs" field, enter the callback URL for the authentication process (e.g., http://localhost:8080/signin-google).
+Click "Create" to generate your client ID and client secret.
+
+
+Step 3: Install Required NuGet Packages
+
+Open your ASP.NET Framework project in Visual Studio.
+Right-click on your project in the Solution Explorer and select "Manage NuGet Packages".
+Search for and install the following packages:
+Microsoft.Owin.Security.Google
+Microsoft.Owin.Host.SystemWeb
+Step 4: Configure Authentication in your ASP.NET Application
+
+Open the Startup.cs or App_Start/Startup.Auth.cs file in your project.
+Add the following code to the ConfigureAuth method:
+
+
+C# => 
+{
+app.UseGoogleAuthentication(new GoogleOAuth2AuthenticationOptions
+{
+    ClientId = "YOUR_CLIENT_ID",
+    ClientSecret = "YOUR_CLIENT_SECRET"
+});
+}
+Replace "YOUR_CLIENT_ID" and "YOUR_CLIENT_SECRET" with the values from the Google OAuth credentials you created in Step 2.
+
+Step 5: Create the Google Login Button
+
+Open the desired view where you want to place the Google login button.
+Add the following HTML code to display the button:
+<a href="/signin-google" class="btn btn-google">Sign in with Google</a>
+Step 6: Handling the Callback
+
+Create a new action method in your controller to handle the callback from Google:
+public async Task<ActionResult> ExternalLoginCallback(string returnUrl)
+{
+    var loginInfo = await AuthenticationManager.GetExternalLoginInfoAsync();
+    // You can access the user information from loginInfo variable
+    // Redirect the user to the desired page after successful login
+    return RedirectToAction("Index", "Home");
+}
