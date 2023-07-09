@@ -1,0 +1,173 @@
+#region Authentication
+        //[Route("~/home/Authentication")]
+        //public ActionResult Authentication()
+        //{
+        public static async Task<string> GetToken()
+        {
+            #region Comment
+            //var client = new HttpClient();
+            //var request = new HttpRequestMessage(HttpMethod.Post,
+            //"http://212.103.166.67/sws/Authentication.asmx");
+            //request.Headers.Add("SOAPAction", "http://www.sansejour.com/Login");
+            //var content = new StringContent("<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\r\n  <soap:Body>\r\n    <Login xmlns=\"http://www.sansejour.com/\">\r\n      <databaseName>TRAVCOEGYPT2017</databaseName>\r\n      <userName>TEST</userName>\r\n      <password>Utj25dSr</password>\r\n      <Language/>\r\n      <dmn/>\r\n      <ipAdrs/>\r\n      <ipCode/>\r\n    </Login>\r\n  </soap:Body>\r\n</soap:Envelope>", null , "text/xml; charset=utf-8");
+            //request.Content = content;
+            //var response = await client.SendAsync(request);
+            //response.EnsureSuccessStatusCode();
+            ////var result =  response.Content.ReadAsStringAsync().Result;
+            //var responseContent = response.Content.ReadAsStringAsync().Result;
+            ////var responseData = JsonConvert.DeserializeObject<GetTourImages>(responseContent);
+            ////var result = responseData.Data;
+            //XmlSerializer serializer = new XmlSerializer(typeof(LoginResult));
+            //LoginResult data;
+            //using (StringReader reader = new StringReader(responseContent))
+            //{
+            //data = (LoginResult)serializer.Deserialize(reader);
+            //}
+            //return View(data.AuthKey);
+            #endregion
+
+
+            #region MyRegion
+            var options = new RestClientOptions("http://212.103.166.67")
+            {
+                MaxTimeout = -1,
+            };
+            var client = new RestClient(options);
+            var request = new RestRequest("/sws/Authentication.asmx", Method.Post);
+            request.AddHeader("Content-Type", "text/xml");
+            var body = "<?xml version=\"1.0\" encoding=\"utf-8\"?>\r\n<soap:Envelope xmlns:soap=\"http://schemas.xmlsoap.org/soap/envelope/\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\">\r\n  <soap:Body>\r\n    <Login xmlns=\"http://www.sansejour.com/\">\r\n      <databaseName>TRAVCOEGYPT2017</databaseName>\r\n      <userName>TEST</userName>\r\n      <password>Utj25dSr</password>\r\n      <Language/>\r\n      <dmn/>\r\n      <ipAdrs/>\r\n      <ipCode/>\r\n    </Login>\r\n  </soap:Body>\r\n</soap:Envelope>";
+
+            request.AddParameter("application/x-www-form-urlencoded", body, ParameterType.RequestBody);
+            RestResponse response = client.Execute(request);
+
+
+            XmlDocument xmlDocument = new XmlDocument();
+            xmlDocument.LoadXml(response.Content.ToString());
+
+            XmlNamespaceManager nsManager = new XmlNamespaceManager(xmlDocument.NameTable);
+            nsManager.AddNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+            nsManager.AddNamespace("ns", "http://www.sansejour.com/");
+
+            XmlNode authKeyNode = xmlDocument.SelectSingleNode("//soap:Envelope/soap:Body/ns:LoginResponse/ns:LoginResult/ns:AuthKey", nsManager);
+            string authKey = authKeyNode?.InnerText;
+
+
+            //return View(authKey.ToList());
+            return authKey;
+            #endregion
+        }
+        #endregion
+
+        #region Get AirPort
+        [Route("~/home/GetAirport")]
+        public async Task<ActionResult> AirPortsAsync()
+        {
+            string token = await GetToken();
+            var options = new RestClientOptions("http://212.103.166.67")
+            {
+                MaxTimeout = -1,
+            };
+            var client = new RestClient(options);
+            var request = new RestRequest("/sws/Common.asmx", Method.Post);
+            request.AddHeader("SOAPAction", "http://www.sansejour.com/GetAirportList");
+            request.AddHeader("Content-Type", "text/xml;");
+            var body = @"<?xml version=""1.0"" encoding=""utf-8""?>
+" + "\n" +
+            @"<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
+" + "\n" +
+            @"  <soap:Body>
+" + "\n" +
+            @"    <GetAirportList xmlns=""http://www.sansejour.com/"">
+" + "\n" +
+            @"      <token>" + token + @"</token>
+" + "\n" +
+            @"    </GetAirportList>
+" + "\n" +
+            @"  </soap:Body>
+" + "\n" +
+            @"</soap:Envelope>";
+            request.AddParameter("application/x-www-form-urlencoded", body, ParameterType.RequestBody);
+            RestResponse response = await client.ExecuteAsync(request);
+
+
+            XmlDocument xmlDocument = new XmlDocument();
+            xmlDocument.LoadXml(response.Content.ToString());
+            XmlNamespaceManager nsManager = new XmlNamespaceManager(xmlDocument.NameTable);
+
+            nsManager.AddNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+            nsManager.AddNamespace("ns", "http://www.sansejour.com/");
+
+
+            XmlNodeList airportNodes = xmlDocument.SelectNodes("//ns:AirportDataItem", nsManager);
+
+
+
+            List<GetAirPort> getAir = new List<GetAirPort>();
+
+            foreach (XmlNode airportNode in airportNodes)
+            {
+                getAir.Add(new GetAirPort
+                {
+                    Code = airportNode.SelectSingleNode("ns:Code", nsManager)?.InnerText,
+                    Name = airportNode.SelectSingleNode("ns:Name", nsManager)?.InnerText
+                });
+            }
+            return View(getAir);
+        }
+        #endregion
+
+        #region Get GetNationalities
+        [Route("~/home/GetNationalities")]
+        public async Task<ActionResult> GetNationalities()
+        {
+            string token = await GetToken();
+            var options = new RestClientOptions("http://212.103.166.67")
+            {
+                MaxTimeout = -1,
+            };
+            var client = new RestClient(options);
+            var request = new RestRequest("/sws/Common.asmx", Method.Post);
+            request.AddHeader("Content-Type", "text/xml;");
+            request.AddHeader("SOAPAction", "http://www.sansejour.com/GetNationalities");
+            var body = @"<?xml version=""1.0"" encoding=""utf-8""?>
+" + "\n" +
+            @"<soap:Envelope xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:soap=""http://schemas.xmlsoap.org/soap/envelope/"">
+" + "\n" +
+            @"  <soap:Body>
+" + "\n" +
+            @"    <GetNationalities xmlns=""http://www.sansejour.com/"">
+" + "\n" +
+            @"      <token>" + token + @"</token>
+" + "\n" +
+            @"    </GetNationalities>
+" + "\n" +
+            @"  </soap:Body>
+" + "\n" +
+            @"</soap:Envelope>";
+            request.AddParameter("application/x-www-form-urlencoded", body, ParameterType.RequestBody);
+            RestResponse response = await client.ExecuteAsync(request);
+
+
+            XmlDocument xmlDocument = new XmlDocument();
+            xmlDocument.LoadXml(response.Content.ToString());
+            XmlNamespaceManager nsManager = new XmlNamespaceManager(xmlDocument.NameTable);
+
+            nsManager.AddNamespace("soap", "http://schemas.xmlsoap.org/soap/envelope/");
+            nsManager.AddNamespace("ns", "http://www.sansejour.com/");
+
+
+
+
+            XmlNodeList airportNodes = xmlDocument.SelectNodes("//ns:NationalityDataItem", nsManager);
+
+
+
+            List<string> nationalities = new List<string>();
+            foreach (XmlNode airportNode in airportNodes)
+            {
+                // here u can add to database ("ns:Code" , ""ns:Name" , "ns:NeedVisa")
+                nationalities.Add(airportNode.SelectSingleNode("ns:Name", nsManager)?.InnerText);
+            }
+            return View(nationalities);
+        }
+        #endregion

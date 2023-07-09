@@ -45,6 +45,7 @@ Step 5: Create the Google Login Button
 Open the desired view where you want to place the Google login button.
 Add the following HTML code to display the button:
 <a href="/signin-google" class="btn btn-google">Sign in with Google</a>
+/Account/ExternalLogin?provider=Google
 Step 6: Handling the Callback
 
 Create a new action method in your controller to handle the callback from Google:
