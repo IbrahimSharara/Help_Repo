@@ -1,0 +1,6 @@
+<img src="..." id="profile-image" />
+<div class="custom-file">
+    <input type="file" class="custom-file-input" alt="......" src="" accept="image/*"
+           onchange="document.getElementById('profile-image').src = window.URL.createObjectURL(this.files[0])" />
+    <label class="custom-file-label">Choose image ... </label>
+</div>
