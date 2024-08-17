@@ -1,0 +1,18 @@
+To loge data into a file 
+1- download pakage Serilog.AspNetCore then download pakage Serilog.Sinks.File
+2- make configuration for logging at program.cs (here i'm writing into a specific file with the date of the day)
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.File($"Logs/{DateTime.Now.Year}/{DateTime.Now.Month}/{DateTime.Now.Day}.txt" )
+    .CreateLogger();
+builder.Host.UseSerilog();
+
+then at the action or endpoint
+(example)
+try
+{
+    throw new Exception("Test Logging");
+}
+catch (Exception ex)
+{
+    _logger.LogError(ex.Message, "An Error Acours");
+}
