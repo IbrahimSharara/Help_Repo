@@ -1,0 +1,49 @@
+To make user take more than one role we can use enum and flags
+#angular 
+export enum UserRoles {
+  None = 0,
+  View = 1,
+  Edit = 2,
+  Delete = 4,
+  Admin = 8,
+  Users = 16,
+  GlobalAdmin = 32,
+}
+
+and usage of this can be like 
+let flags = UserRoles.View | UserRoles.Edit | UserRoles.Delete;
+console.log('flags', (flags & UserRoles.GlobalAdmin) == UserRoles.GlobalAdmin);
+console.log('flags', (flags & UserRoles.None) == UserRoles.None);
+
+
+# C#
+
+[Flags]
+public enum FilePermissions
+{
+    None        = 0,   // 0000
+    Read        = 1,   // 0001
+    Write       = 2,   // 0010
+    Execute     = 4,   // 0100
+    Delete      = 8,   // 1000
+    ReadWrite   = Read | Write // Combination
+}
+
+FilePermissions permissions = FilePermissions.Read | FilePermissions.Write;
+Console.WriteLine(permissions);  
+// Output: Read, Write
+
+ // Check if a flag is present
+bool canWrite = permissions.HasFlag(FilePermissions.Write);
+Console.WriteLine($"Can Write: {canWrite}");  
+// Output: Can Write: True
+
+// Add a flag
+permissions |= FilePermissions.Execute;  
+Console.WriteLine(permissions);  
+// Output: Read, Write, Execute
+
+// Remove a flag
+permissions &= ~FilePermissions.Read;  
+Console.WriteLine(permissions);  
+// Output: Write, Execute
