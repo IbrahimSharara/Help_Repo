@@ -1,0 +1,69 @@
+How to Make Custom Atrribute Per Action to make action to get into it or to get away with any response like unAuth ?
+
+1 create enum to get the action per end point (ex =>)
+[Flags]
+public enum Permission
+{
+    Read = 0,
+    Write = 1,
+    Print = 2,
+    Delete = 4
+}
+
+create PermisionPerActionAttribute class (name it as u want or your use)
+
+here i used to make action if it is available to any one and use a service to make a custom action 
+
+[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
+public class PermisionPerActionAttribute : Attribute, IAsyncActionFilter
+{
+    public Permission[] Permission { get; }
+    private readonly bool AllowAnyOne = false;
+    public PermisionPerActionAttribute(Permission[] permission , bool AllowAnyOne)
+    {
+        Permission = permission;
+    }
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        if (AllowAnyOne)
+        {
+            await next();
+            return;
+        }
+        var service = context.HttpContext.RequestServices.GetRequiredService<IloginService>();
+        // Get user id from claims
+        var userId = context.HttpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var userRoles = context.HttpContext.User.Claims.Where(x => x.Type == ClaimTypes.Role);
+        if (userRoles.Any(x => x.Value == ((int)roles.GlobalAdmin).ToString()))
+        {
+            await next();
+            return;
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(userId))
+            {
+                context.Result = new BadRequestResult();
+                return;
+            }
+
+            bool hasPermission = true; //await _userPageRepository.UserHasAccessToActionAsync(userId);
+            foreach (var permission in Permission)
+            {
+                //hasPermission = await _userPageRepository.UserHasAccessToActionAsync(userId, permission);
+
+                if (hasPermission)
+                {
+                    await next();
+                    return;
+                }
+            }
+            if (!hasPermission)
+            {
+                context.Result = new ForbidResult();
+                return;
+            }
+
+        }
+    }
+}
