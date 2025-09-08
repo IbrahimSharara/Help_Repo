@@ -1,0 +1,329 @@
+this file is to create unit testing for UserPermissionRepository using Xunit
+testing contains 3 steps 
+Arrang => int c = 4 ; string name = "ibrahim"; int y;
+Act => y = x + 5;
+Assert => Assert.Equal(9 , y) // here must be true and if the result is not true it will fire exception
+
+
+=>>> creating unit test steps
+1- first create Xunit project 
+2- add Microsoft.EntityFrameworkCore.InMemory for using in memory data for testing
+3- create class for testing like UserPermissionRepositoryTest 
+4- create private fields and create constructor to create and define these fields
+5- start creating methods to make test for each method in the repository 
+
+can create [optional] seed method to seed all used and wanted cases 
+
+#example
+
+public class UserPermissionRepositoryTest : IDisposable
+{
+    private readonly superVisionDBContex _context; // create a field of dbcontext to store data but this will be inmemory
+    private readonly UserPermissionRepository _repository; // create field of my testing repository 
+    public UserPermissionRepositoryTest() // contructor to define my fields
+    {
+        // Setup in-memory database
+        var options = new DbContextOptionsBuilder<superVisionDBContex>()
+            .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
+            .Options;
+
+        _context = new superVisionDBContex(options);
+        _repository = new UserPermissionRepository(_context);
+
+        // Seed test data
+        SeedTestData();
+    }
+// private method for seeding data
+    private void SeedTestData()
+    {
+        // Create sample salt and password bytes (for testing purposes only)
+        byte[] sampleSalt = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
+        byte[] samplePassword = new byte[] { 16, 15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1 };
+
+        // Add users using the constructor
+        var users = new List<user>
+{
+    new user(
+        id: 1,
+        email: "admin@example.com",
+        password: samplePassword,
+        salt: sampleSalt,
+        fullName: "Admin User",
+        isActive: true,
+        requiredChangePassword: false,
+        mobileNo: "+1234567890",
+        phoneNo: "+0987654321",
+        company_id: 1,
+        photo: null,
+        jobtitle_minor_id: 1,
+        code: "ADM001"
+    ),
+    new user(
+        id: 2,
+        email: "ibrahim@sharara.com",
+        password: samplePassword,
+        salt: sampleSalt,
+        fullName: "ibrahim sharara",
+        isActive: true,
+        requiredChangePassword: true,
+        mobileNo: "+2010900204",
+        phoneNo: null,
+        company_id: 1,
+        photo: "fire.jpg",
+        jobtitle_minor_id: 2,
+        code: "EMP002"
+    ),
+    new user(
+        id: 3,
+        email: "sharara@example.com",
+        password: samplePassword,
+        salt: sampleSalt,
+        fullName: "sharara",
+        isActive: false,
+        requiredChangePassword: false,
+        mobileNo: null,
+        phoneNo: "+1555987654",
+        company_id: 2,
+        photo: null,
+        jobtitle_minor_id: 3,
+        code: "EMP003"
+    ),
+    new user(
+        id: 4,
+        email: "deleted.user@example.com",
+        password: samplePassword,
+        salt: sampleSalt,
+        fullName: "Deleted User",
+        isActive: false,
+        requiredChangePassword: false,
+        mobileNo: "+1555000000",
+        phoneNo: null,
+        company_id: 1,
+        photo: null,
+        jobtitle_minor_id: 4,
+        code: "DEL004"
+    )
+        };
+
+        // Add page objects
+        var pageObjects = new List<pageObject>
+{
+    new pageObject (1, "Dashboard" ,""),
+    new pageObject (2, "Settings" ,""),
+    new pageObject (3, "Reports" ,"")
+};
+
+        // Add permissions
+        var permissions = new List<Permission>
+{
+    new Permission { Id = 1, Name = "Read" ,Code = "0"},
+    new Permission { Id = 2, Name = "Write",Code = "1" },
+    new Permission { Id = 3, Name = "Delete",Code = "2" },
+    new Permission { Id = 4, Name = "Admin" ,Code = "3"}
+};
+
+        // Add user permissions
+        var userPermissions = new List<UserPermission>
+{
+    new UserPermission { UserId = 1, PageObjectId = 1, PermissionId = 1 }, // Admin - Dashboard - Read
+    new UserPermission { UserId = 1, PageObjectId = 1, PermissionId = 2 }, // Admin - Dashboard - Write
+    new UserPermission { UserId = 1, PageObjectId = 1, PermissionId = 3 }, // Admin - Dashboard - Delete
+    new UserPermission { UserId = 1, PageObjectId = 2, PermissionId = 4 }, // Admin - Settings - Admin
+    new UserPermission { UserId = 2, PageObjectId = 1, PermissionId = 1 }, // ibrahim - Dashboard - Read
+    new UserPermission { UserId = 2, PageObjectId = 3, PermissionId = 1 }, // ibrahim - Reports - Read
+    new UserPermission { UserId = 3, PageObjectId = 1, PermissionId = 1 }  // sharara - Dashboard - Read
+};
+        // Add to context
+        _context.user.AddRange(users);
+        _context.PageObjects.AddRange(pageObjects);
+        _context.Permissions.AddRange(permissions);
+        _context.UserPermissions.AddRange(userPermissions);
+
+        _context.SaveChanges();
+    }
+// implement idisposable => make my dbcontext to be disposed
+    public void Dispose() { _context?.Dispose(); }
+
+    [Fact]
+    public async Task UserExistsAsync_ActiveUser_ReturnsTrue()
+    {
+        // Act & Assert
+        Assert.True(await _repository.UserExistsAsync(1, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task GetPermissionsForUserAndPageObjectAsync_ValidUserAndPageObject_ReturnsPermissions()
+    {
+        // Act
+        var result = await _repository.GetPermissionsForUserAndPageObjectAsync(1, "Dashboard");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Equal(3, result.Count);
+        Assert.Contains(result, p => p.Name == "Read");
+        Assert.Contains(result, p => p.Name == "Write");
+    }
+
+    [Fact]
+    public async Task GetPermissionsForUserAndPageObjectAsync_NonExistingUser_ReturnsEmptyList()
+    {
+        // Act
+        var result = await _repository.GetPermissionsForUserAndPageObjectAsync(999, "Dashboard");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task GetPermissionsForUserAndPageObjectAsync_NonExistingPageObject_ReturnsEmptyList()
+    {
+        // Act
+        var result = await _repository.GetPermissionsForUserAndPageObjectAsync(1, "NonExistingPage");
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public async Task UserExistsAsync_ExistingActiveUser_ReturnsTrue()
+    {
+        // Act & Assert
+        Assert.True(await _repository.UserExistsAsync(1, CancellationToken.None));
+    }
+    [Fact]
+    public async Task UserExistsAsync_ExistingDeletedUser_ReturnsFalse()
+    {
+        // Act & Assert
+        Assert.False(await _repository.UserExistsAsync(5, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task UserExistsAsync_NonExistingUser_ReturnsFalse()
+    {
+        // Act & Assert
+        Assert.False(await _repository.UserExistsAsync(999, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task PageObjectExistsAsync_ExistingPageObject_ReturnsTrue()
+    {
+        // Act & Assert
+        Assert.True(await _repository.PageObjectExistsAsync(1, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task PageObjectExistsAsync_NonExistingPageObject_ReturnsFalse()
+    {
+        // Act & Assert
+        Assert.False(await _repository.PageObjectExistsAsync(999, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RemoveUserPermissionsAsync_ExistingPermissions_RemovesPermissions()
+    {
+        // Arrange
+        var initialCount = await _context.UserPermissions
+            .Where(up => up.UserId == 1 && up.PageObjectId == 1)
+            .CountAsync();
+
+        // Act
+        await _repository.RemoveUserPermissionsAsync(1, 1, CancellationToken.None);
+        await _repository.SaveChangesAsync(CancellationToken.None);
+
+        // Assert
+        var finalCount = await _context.UserPermissions
+            .Where(up => up.UserId == 1 && up.PageObjectId == 1)
+            .CountAsync();
+
+        Assert.Equal(3, initialCount); // Should have 2 permissions initially
+        Assert.Equal(0, finalCount); // Should have 0 permissions after removal
+    }
+
+    [Fact]
+    public async Task RemoveUserPermissionsAsync_NonExistingPermissions_DoesNothing()
+    {
+        // Arrange
+        var initialCount = await _context.UserPermissions.CountAsync();
+
+        // Act
+        await _repository.RemoveUserPermissionsAsync(999, 999, CancellationToken.None);
+        await _repository.SaveChangesAsync(CancellationToken.None);
+
+        // Assert
+        var finalCount = await _context.UserPermissions.CountAsync();
+        Assert.Equal(initialCount, finalCount); // Count should remain unchanged
+    }
+
+    [Fact]
+    public async Task AddUserPermissionsAsync_ValidPermissions_AddsToDatabase()
+    {
+        // Arrange
+        var newPermissions = new List<UserPermission>
+        {
+            new UserPermission { UserId = 2, PageObjectId = 2, PermissionId = 2 },
+            new UserPermission { UserId = 2, PageObjectId = 2, PermissionId = 3 }
+        };
+
+        var initialCount = await _context.UserPermissions
+            .Where(up => up.UserId == 2 && up.PageObjectId == 2)
+            .CountAsync();
+
+        // Act
+        await _repository.AddUserPermissionsAsync(newPermissions, CancellationToken.None);
+        await _repository.SaveChangesAsync(CancellationToken.None);
+
+        // Assert
+        var finalCount = await _context.UserPermissions
+            .Where(up => up.UserId == 2 && up.PageObjectId == 2)
+            .CountAsync();
+
+        Assert.Equal(0, initialCount); // Should have 0 permissions initially
+        Assert.Equal(2, finalCount); // Should have 2 permissions after adding
+    }
+
+    [Fact]
+    public async Task AddUserPermissionsAsync_EmptyList_DoesNothing()
+    {
+        // Arrange
+        var initialCount = await _context.UserPermissions.CountAsync();
+
+        // Act
+        await _repository.AddUserPermissionsAsync(new List<UserPermission>(), CancellationToken.None);
+        await _repository.SaveChangesAsync(CancellationToken.None);
+
+        // Assert
+        var finalCount = await _context.UserPermissions.CountAsync();
+        Assert.Equal(initialCount, finalCount); // Count should remain unchanged
+    }
+
+    [Fact]
+    public async Task IntegrationTest_RemoveAndAddPermissions_WorksCorrectly()
+    {
+        // Arrange
+        var userId = 1;
+        var pageObjectId = 1;
+
+        // Remove existing permissions
+        await _repository.RemoveUserPermissionsAsync(userId, pageObjectId, CancellationToken.None);
+
+        // Add new permissions
+        var newPermissions = new List<UserPermission>
+        {
+            new UserPermission { UserId = userId, PageObjectId = pageObjectId, PermissionId = 3 } // Delete permission
+        };
+
+        await _repository.AddUserPermissionsAsync(newPermissions, CancellationToken.None);
+        await _repository.SaveChangesAsync(CancellationToken.None);
+
+        // Act - get permissions for verification
+        var pageObject = await _context.PageObjects.FindAsync((long)pageObjectId);
+        var result = await _repository.GetPermissionsForUserAndPageObjectAsync(userId, pageObject.name);
+
+        // Assert
+        Assert.NotNull(result);
+        Assert.Single(result);
+        Assert.Contains(result, p => p.Name == "Delete");
+    }
+}
