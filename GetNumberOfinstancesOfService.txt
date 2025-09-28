@@ -1,0 +1,17 @@
+export class EventService {
+  private static instanceCount = 0;
+  private instanceId: number;
+
+  constructor() {
+    EventService.instanceCount++;
+    this.instanceId = EventService.instanceCount;
+    
+    console.log(`🟢 EventService: Instance #${this.instanceId} created`);
+    console.trace(`🟢 EventService: Stack trace for instance #${this.instanceId}`);
+    
+    if (EventService.instanceCount > 1) {
+      console.error(`🔴 MULTIPLE INSTANCES DETECTED! Current: #${this.instanceId}`);
+      // This will help us identify where it's used
+      debugger; // Remove this in production
+    }
+  }
