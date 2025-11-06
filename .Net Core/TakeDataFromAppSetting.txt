@@ -1,0 +1,37 @@
+if i have values in appsetting and want to use it in all the project 
+
+1- add props in appSetting
+      "EncryptionSettings": {
+    "Key": "dsfsfsdvcrefdg",
+    "Salt": "rgfgegfgf"
+}
+
+2- Create C# Class with the same name (Class can take any name but props must take the same name and here SectionName prop value must take the same name of parent in the appsetting)
+public class EncryptionKeysOptions
+{
+    public const string SectionName = "EncryptionSettings";
+
+    public string Key { get; set; } = string.Empty;
+    public string Salt { get; set; } = string.Empty;
+}
+
+3- make its configuration in the program.cs 
+builder.Services.Configure<EncryptionKeysOptions>(
+    builder.Configuration.GetSection(EncryptionKeysOptions.SectionName));
+4 - use it in the file you want with this way 
+ex 
+class security 
+{
+    private readonly EncryptionKeysOptions _keys;
+    public security(IOptions<EncryptionKeysOptions> options)
+    {
+        _keys = options.Value;
+    }
+    public string EncryptQueryString(string inputText)
+    {
+        string? key = _keys.Key; //Environment.GetEnvironmentVariable("ASPNETCORE_Sault_key");
+        string? salt = _keys.Salt;
+      return key;
+    }
+}
+
