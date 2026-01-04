@@ -1,0 +1,17 @@
+var users = projectUsers.Select(x => new UsersForMentionDTO
+{
+    BlobPath =  x.user_nav_id.photo??"",
+    Id = x.user_nav_id.id,
+    UserName = x.user_nav_id.fullName,
+    Email = x.user_nav_id.email,
+}).ToList();
+
+var ttl = TimeSpan.FromMinutes(10);
+var sasUrlTasks = users
+    .Where(item => !item.BlobPath.IsNullOrEmpty())
+    .Select(async item =>
+    {
+        var sas = await _blobStorageService.GetReadSasUriAsync(item.BlobPath,ttl);
+        item.BlobPath = sas.ToString();
+    });
+await Task.WhenAll(sasUrlTasks);
