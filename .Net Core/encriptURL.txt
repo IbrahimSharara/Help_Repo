@@ -1,0 +1,479 @@
+● 🔐 Route Encryption System
+
+  Why Use This?
+  ┌───────────────────────────────┬────────────────────────────────┐
+  │      Without Encryption       │        With Encryption         │                                                                                                          
+  ├───────────────────────────────┼────────────────────────────────┤                                                                                                          
+  │ /project?id=123               │ /project?SQ=x7Kp2mN...         │
+  ├───────────────────────────────┼────────────────────────────────┤
+  │ ❌ User can change 123 to 456 │ ✅ User cannot guess other IDs │
+  ├───────────────────────────────┼────────────────────────────────┤
+  │ ❌ Exposes database IDs       │ ✅ IDs are hidden              │
+  └───────────────────────────────┴────────────────────────────────┘
+  ---
+  How It Works
+
+      📱 FRONTEND                           🖥️ BACKEND
+
+      ┌──────────────┐                     ┌──────────────┐
+      │ User clicks  │                     │              │
+      │ "View #123"  │                     │              │
+      └──────┬───────┘                     │              │
+             │                             │              │
+             │  ① GET /api/Encrypt/id=123  │              │
+             │ ─────────────────────────►  │   ENCRYPT    │
+             │                             │   id=123     │
+             │  ② { result: "x7Kp2mN..." } │      ↓       │
+             │ ◄─────────────────────────  │   x7Kp2mN... │
+             │                             │              │
+      ┌──────┴───────┐                     └──────────────┘
+      │   Navigate   │
+      │ /project?SQ= │
+      │  x7Kp2mN...  │
+      └──────┬───────┘
+             │
+             │         PAGE LOADS
+             │
+      ┌──────┴───────┐                     ┌──────────────┐
+      │  Read SQ     │                     │              │
+      │  from URL    │                     │              │
+      └──────┬───────┘                     │              │
+             │                             │              │
+             │  ③ POST /api/Decrypt        │              │
+             │    { query: "x7Kp2mN...",   │   DECRYPT    │
+             │      key: "id" }            │   x7Kp2mN... │
+             │ ─────────────────────────►  │      ↓       │
+             │                             │   id=123     │
+             │  ④ { result: "123" }        │              │
+             │ ◄─────────────────────────  │              │
+             │                             │              │
+      ┌──────┴───────┐                     └──────────────┘
+      │ Load project │
+      │   ID: 123    │
+      └──────────────┘
+
+  ---
+  🖥️ BACKEND (C#)
+
+  📁 File Structure
+
+  YourProject/
+  ├── appsettings.json           ← Keys configuration
+  ├── Models/
+  │   └── EncryptionSettings.cs  ← Settings class
+  ├── Services/
+  │   └── EncryptionService.cs   ← Encrypt/Decrypt logic
+  ├── Controllers/
+  │   └── EncryptionController.cs ← API endpoints
+  └── Program.cs                  ← Register services
+
+  ---
+  1️⃣ Configuration                                                                                                                                                           
+
+
+  appsettings.json
+  {
+    "EncryptionSettings": {
+      "Key": "YourSecretKey12345678",
+      "Salt": "YourSaltValue12345678"
+    }
+  }
+
+  ⚠️ Important: Use strong, unique values. Never commit real keys to git!
+
+  ---
+  2️⃣ Settings Model                                                                                                                                                          
+
+
+  Models/EncryptionSettings.cs
+  public class EncryptionSettings
+  {
+      public string Key { get; set; } = string.Empty;
+      public string Salt { get; set; } = string.Empty;
+  }
+
+  ---
+  3️⃣ Encryption Service                                                                                                                                                      
+
+
+  Services/EncryptionService.cs
+  using System.Security.Cryptography;
+  using System.Text;
+  using System.Web;
+  using Microsoft.Extensions.Options;
+
+  public class EncryptionService
+  {
+      private readonly string _key;
+      private readonly string _salt;
+
+      public EncryptionService(IOptions<EncryptionSettings> settings)
+      {
+          _key = settings.Value.Key;
+          _salt = settings.Value.Salt;
+      }
+
+      /// <summary>
+      /// Encrypts a query string like "id=123" → "x7Kp2mN..."
+      /// </summary>
+      public string Encrypt(string plainText)
+      {
+          var plainBytes = Encoding.UTF8.GetBytes(plainText);
+          var keyBytes = GetKeyBytes();
+
+          using var aes = Aes.Create();
+          aes.Key = keyBytes.Key;
+          aes.IV = keyBytes.IV;
+          aes.Mode = CipherMode.CBC;
+          aes.Padding = PaddingMode.PKCS7;
+
+          using var encryptor = aes.CreateEncryptor();
+          using var ms = new MemoryStream();
+          using var cs = new CryptoStream(ms, encryptor, CryptoStreamMode.Write);
+
+          cs.Write(plainBytes, 0, plainBytes.Length);
+          cs.FlushFinalBlock();
+
+          return Convert.ToBase64String(ms.ToArray());
+      }
+
+      /// <summary>
+      /// Decrypts "x7Kp2mN..." → "id=123"
+      /// </summary>
+      public string Decrypt(string encryptedText)
+      {
+          var encryptedBytes = Convert.FromBase64String(encryptedText);
+          var keyBytes = GetKeyBytes();
+
+          using var aes = Aes.Create();
+          aes.Key = keyBytes.Key;
+          aes.IV = keyBytes.IV;
+          aes.Mode = CipherMode.CBC;
+          aes.Padding = PaddingMode.PKCS7;
+
+          using var decryptor = aes.CreateDecryptor();
+          using var ms = new MemoryStream(encryptedBytes);
+          using var cs = new CryptoStream(ms, decryptor, CryptoStreamMode.Read);
+          using var output = new MemoryStream();
+
+          cs.CopyTo(output);
+          return Encoding.UTF8.GetString(output.ToArray());
+      }
+
+      /// <summary>
+      /// Gets a specific value from decrypted query string
+      /// "id=123&name=test" + key "id" → "123"
+      /// </summary>
+      public string? GetValue(string queryString, string key)
+      {
+          var parsed = HttpUtility.ParseQueryString(queryString);
+          return parsed[key];
+      }
+
+      /// <summary>
+      /// Derives key and IV from password and salt
+      /// </summary>
+      private (byte[] Key, byte[] IV) GetKeyBytes()
+      {
+          using var deriveBytes = new Rfc2898DeriveBytes(
+              _key,
+              Encoding.UTF8.GetBytes(_salt),
+              10000,
+              HashAlgorithmName.SHA256
+          );
+
+          return (
+              Key: deriveBytes.GetBytes(32),  // 256 bits
+              IV: deriveBytes.GetBytes(16)    // 128 bits
+          );
+      }
+  }
+
+  ---
+  4️⃣ Controller                                                                                                                                                              
+
+
+  Controllers/EncryptionController.cs
+  using Microsoft.AspNetCore.Authorization;
+  using Microsoft.AspNetCore.Mvc;
+
+  [ApiController]
+  [Authorize]  // 🔒 Requires authentication
+  public class EncryptionController : ControllerBase
+  {
+      private readonly EncryptionService _encryption;
+
+      public EncryptionController(EncryptionService encryption)
+      {
+          _encryption = encryption;
+      }
+
+      /// <summary>
+      /// ENCRYPT: "id=123" → "x7Kp2mN..."
+      /// </summary>
+      [HttpGet("api/EncqStringnourlenc/{query}")]
+      public IActionResult Encrypt(string query)
+      {
+          try
+          {
+              var result = _encryption.Encrypt(query);
+              return Ok(new { result });
+          }
+          catch
+          {
+              return BadRequest(new { error = "Encryption failed" });
+          }
+      }
+
+      /// <summary>
+      /// DECRYPT: "x7Kp2mN..." → "123"
+      /// </summary>
+      [HttpPost("api/DecqString")]
+      public IActionResult Decrypt([FromBody] DecryptRequest request)
+      {
+          try
+          {
+              var decrypted = _encryption.Decrypt(request.Decquerystring);
+              var value = _encryption.GetValue(decrypted, request.Key);
+              return Ok(new { result = value });
+          }
+          catch
+          {
+              return BadRequest(new { error = "Decryption failed" });
+          }
+      }
+  }
+
+  // Request model
+  public class DecryptRequest
+  {
+      public string Decquerystring { get; set; } = string.Empty;
+      public string Key { get; set; } = string.Empty;
+  }
+
+  ---
+  5️⃣ Register Services                                                                                                                                                       
+
+
+  Program.cs
+  // Add this before builder.Build()
+
+  builder.Services.Configure<EncryptionSettings>(
+      builder.Configuration.GetSection("EncryptionSettings")
+  );
+
+  builder.Services.AddSingleton<EncryptionService>();
+
+  ---
+  📱 FRONTEND (Angular)
+
+  📁 File Structure
+
+  src/app/
+  ├── core/
+  │   └── services/
+  │       └── encryption.service.ts  ← Encrypt/Decrypt calls
+  └── features/
+      └── project/
+          ├── project-list.component.ts    ← Navigate WITH encryption
+          └── project-detail.component.ts  ← Read FROM encryption
+
+  ---
+  1️⃣ Encryption Service                                                                                                                                                      
+
+
+  core/services/encryption.service.ts
+  import { Injectable } from '@angular/core';
+  import { HttpClient } from '@angular/common/http';
+  import { Observable } from 'rxjs';
+
+  @Injectable({ providedIn: 'root' })
+  export class EncryptionService {
+
+    private apiUrl = 'https://your-api.com';
+
+    constructor(private http: HttpClient) {}
+
+    /**
+     * ENCRYPT: "id=123" → "x7Kp2mN..."
+     */
+    encrypt(query: string): Observable<{ result: string }> {
+      return this.http.get<{ result: string }>(
+        `${this.apiUrl}/api/EncqStringnourlenc/${query}`
+      );
+    }
+
+    /**
+     * DECRYPT: "x7Kp2mN..." + "id" → "123"
+     */
+    decrypt(encryptedQuery: string, key: string): Observable<{ result: string }> {
+      return this.http.post<{ result: string }>(
+        `${this.apiUrl}/api/DecqString`,
+        {
+          decquerystring: encryptedQuery,
+          key: key
+        }
+      );
+    }
+  }
+
+  ---
+  2️⃣ Navigate WITH Encryption                                                                                                                                                
+
+
+  project-list.component.ts
+  import { Component } from '@angular/core';
+  import { Router } from '@angular/router';
+  import { EncryptionService } from '@core/services/encryption.service';
+
+  @Component({
+    selector: 'app-project-list',
+    template: `
+      <div *ngFor="let project of projects">
+        <span>{{ project.name }}</span>
+        <button (click)="viewProject(project.id)">View</button>
+      </div>
+    `
+  })
+  export class ProjectListComponent {
+
+    projects = [
+      { id: 123, name: 'Project A' },
+      { id: 456, name: 'Project B' }
+    ];
+
+    constructor(
+      private router: Router,
+      private encryption: EncryptionService
+    ) {}
+
+    viewProject(id: number): void {
+      // Step 1: Encrypt the ID
+      this.encryption.encrypt(`id=${id}`).subscribe({
+        next: (response) => {
+          // Step 2: Navigate with encrypted SQ
+          this.router.navigate(['/project/detail'], {
+            queryParams: { SQ: response.result }
+          });
+        },
+        error: (err) => console.error('Encryption failed:', err)
+      });
+    }
+  }
+
+  ---
+  3️⃣ Read FROM Encryption                                                                                                                                                    
+
+
+  project-detail.component.ts
+  import { Component, OnInit } from '@angular/core';
+  import { ActivatedRoute } from '@angular/router';
+  import { EncryptionService } from '@core/services/encryption.service';
+
+  @Component({
+    selector: 'app-project-detail',
+    template: `
+      <div *ngIf="loading">Loading...</div>
+      <div *ngIf="project">
+        <h1>{{ project.name }}</h1>
+      </div>
+    `
+  })
+  export class ProjectDetailComponent implements OnInit {
+
+    project: any;
+    loading = true;
+
+    constructor(
+      private route: ActivatedRoute,
+      private encryption: EncryptionService,
+      private projectService: ProjectService
+    ) {}
+
+    ngOnInit(): void {
+      // Step 1: Get SQ from URL
+      const sq = this.route.snapshot.queryParams['SQ'];
+
+      if (!sq) {
+        console.error('No SQ parameter found');
+        return;
+      }
+
+      // Step 2: Decrypt to get real ID
+      this.encryption.decrypt(sq, 'id').subscribe({
+        next: (response) => {
+          const projectId = Number(response.result);
+
+          // Step 3: Load data with decrypted ID
+          this.loadProject(projectId);
+        },
+        error: (err) => console.error('Decryption failed:', err)
+      });
+    }
+
+    loadProject(id: number): void {
+      this.projectService.getById(id).subscribe(data => {
+        this.project = data;
+        this.loading = false;
+      });
+    }
+  }
+
+  ---
+  📋 Quick Reference
+
+  API Endpoints
+  ┌─────────────────────────────────┬────────┬─────────┬─────────────────────┐
+  │            Endpoint             │ Method │ Purpose │       Example       │
+  ├─────────────────────────────────┼────────┼─────────┼─────────────────────┤
+  │ /api/EncqStringnourlenc/{query} │ GET    │ Encrypt │ id=123 → x7Kp2mN... │
+  ├─────────────────────────────────┼────────┼─────────┼─────────────────────┤
+  │ /api/DecqString                 │ POST   │ Decrypt │ x7Kp2mN... → 123    │
+  └─────────────────────────────────┴────────┴─────────┴─────────────────────┘
+  Request/Response Examples
+
+  Encrypt:
+  GET /api/EncqStringnourlenc/id=123
+
+  Response: { "result": "x7Kp2mNqR5tY8uW..." }
+
+  Decrypt:
+  POST /api/DecqString
+  Body: { "decquerystring": "x7Kp2mNqR5tY8uW...", "key": "id" }
+
+  Response: { "result": "123" }
+
+  ---
+  ✅ Checklist for New Project
+
+  Backend
+
+  - Add EncryptionSettings to appsettings.json
+  - Create EncryptionSettings.cs model
+  - Create EncryptionService.cs
+  - Create EncryptionController.cs
+  - Register services in Program.cs
+  - Add [Authorize] to protect endpoints
+
+  Frontend
+
+  - Create EncryptionService
+  - Use encrypt() before navigation
+  - Use decrypt() on page load
+  - Handle errors gracefully
+
+  ---
+  🔒 Security Tips
+  ┌─────────────────────────────────────┬─────────────────────────────────┐
+  │                Do ✅                │            Don't ❌             │
+  ├─────────────────────────────────────┼─────────────────────────────────┤
+  │ Use HTTPS                           │ Expose keys in code             │
+  ├─────────────────────────────────────┼─────────────────────────────────┤
+  │ Use strong keys (20+ chars)         │ Use simple keys like "password" │
+  ├─────────────────────────────────────┼─────────────────────────────────┤
+  │ Store keys in environment variables │ Commit keys to git              │
+  ├─────────────────────────────────────┼─────────────────────────────────┤
+  │ Require authentication              │ Allow anonymous access          │
+  ├─────────────────────────────────────┼─────────────────────────────────┤
+  │ Validate decrypted values           │ Trust decrypted data blindly    │
+  └─────────────────────────────────────┴─────────────────────────────────┘
